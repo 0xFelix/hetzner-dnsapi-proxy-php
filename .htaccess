@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Enforce HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Content-Security-Policy "default-src 'none'"
+    Header set Cache-Control "no-store"
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

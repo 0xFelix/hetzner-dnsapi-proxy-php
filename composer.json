@@ -1,0 +1,29 @@
+{
+    "name": "0xfelix/hetzner-dnsapi-proxy-php",
+    "description": "PHP DNS API proxy for Hetzner Cloud, compatible with hetzner-dnsapi-proxy endpoints",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.3",
+        "lkdevelopment/hetzner-cloud-php-sdk": "^3.0",
+        "jeremykendall/php-domain-parser": "^6.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "HetznerDnsapiProxy\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HetznerDnsapiProxy\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "update-psl": "curl -sSf -o data/public_suffix_list.dat https://publicsuffix.org/list/public_suffix_list.dat",
+        "post-install-cmd": "@update-psl",
+        "post-update-cmd": "@update-psl"
+    }
+}

@@ -1,0 +1,8 @@
+/vendor/
+/config.php
+/data/public_suffix_list.dat
+/data/app.log
+/data/rate_limit.json
+.claude/
+.phpunit.result.cache
+.phpunit.cache/
