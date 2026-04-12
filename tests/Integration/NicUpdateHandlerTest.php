@@ -69,9 +69,25 @@ class NicUpdateHandlerTest extends HandlerTestCase
         $this->assertEmpty($this->dns->updateCalls);
     }
 
-    public function testMissingIp(): void
+    public function testMissingIpFallsBackToRemoteAddr(): void
     {
         $_GET['hostname'] = 'sub.example.com';
+        $_SERVER['REMOTE_ADDR'] = '5.6.7.8';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(200, $code);
+        $this->assertSame('good 5.6.7.8', $body);
+        $this->assertCount(1, $this->dns->updateCalls);
+        $this->assertSame('5.6.7.8', $this->dns->updateCalls[0]->value);
+        $this->assertSame('A', $this->dns->updateCalls[0]->type);
+    }
+
+    public function testMissingIpWithInvalidRemoteAddr(): void
+    {
+        $_GET['hostname'] = 'sub.example.com';
+        $_SERVER['REMOTE_ADDR'] = '';
         $this->setBasicAuth('alice', 'secret');
 
         [$code, $body] = $this->captureOutput([$this->handler, 'handle']);

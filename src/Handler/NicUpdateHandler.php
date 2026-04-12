@@ -25,10 +25,10 @@ class NicUpdateHandler
     {
         header('Content-Type: text/plain');
 
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
 
-        if ($this->rateLimiter->isBlocked($ip)) {
-            $this->log->info('nic: blocked request from locked out IP ' . $ip);
+        if ($this->rateLimiter->isBlocked($remoteAddr)) {
+            $this->log->info('nic: blocked request from locked out IP ' . $remoteAddr);
             http_response_code(429);
             echo 'abuse';
             return;
@@ -44,10 +44,10 @@ class NicUpdateHandler
 
         $user = $this->auth->authenticate($creds[0], $creds[1]);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($ip);
-            $this->log->info('nic: auth failed for user: ' . $creds[0] . ' from ' . $ip);
+            $locked = $this->rateLimiter->recordFailure($remoteAddr);
+            $this->log->info('nic: auth failed for user: ' . $creds[0] . ' from ' . $remoteAddr);
             if ($locked) {
-                $this->log->info('nic: locked out IP ' . $ip . ' after too many failures');
+                $this->log->info('nic: locked out IP ' . $remoteAddr . ' after too many failures');
             }
             header('WWW-Authenticate: Basic realm="Restricted"');
             http_response_code(401);
@@ -55,7 +55,7 @@ class NicUpdateHandler
             return;
         }
 
-        $this->rateLimiter->reset($ip);
+        $this->rateLimiter->reset($remoteAddr);
 
         $hostname = $_GET['hostname'] ?? '';
         if (Sanitize::hasControl($hostname)) {
@@ -72,7 +72,10 @@ class NicUpdateHandler
             echo 'notfqdn';
             return;
         }
-        if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+        if ($ip === '') {
+            $ip = $remoteAddr;
+        }
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
             echo 'notfqdn';
             return;
         }
