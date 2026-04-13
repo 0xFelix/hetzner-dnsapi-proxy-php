@@ -4,12 +4,13 @@
     "type": "project",
     "license": "MIT",
     "require": {
-        "php": ">=8.3",
+        "php": ">=8.4",
         "lkdevelopment/hetzner-cloud-php-sdk": "^3.0",
         "jeremykendall/php-domain-parser": "^6.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^13.0"
+        "phpunit/phpunit": "^13.0",
+        "phpstan/phpstan": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -24,6 +25,8 @@
     "scripts": {
         "update-psl": "curl -sSf -o data/public_suffix_list.dat https://publicsuffix.org/list/public_suffix_list.dat",
         "post-install-cmd": "@update-psl",
-        "post-update-cmd": "@update-psl"
+        "post-update-cmd": "@update-psl",
+        "lint": "phpstan analyse",
+        "test": "phpunit"
     }
 }

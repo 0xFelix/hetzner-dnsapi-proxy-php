@@ -65,6 +65,7 @@ class RateLimiter
         $this->removeEntry($ip);
     }
 
+    /** @return array{count: int, locked_until?: int}|null */
     private function loadEntry(string $ip): ?array
     {
         $data = $this->load();
@@ -78,6 +79,7 @@ class RateLimiter
         $this->save($data);
     }
 
+    /** @return array<string, array{count: int, locked_until?: int}> */
     private function load(): array
     {
         if (!file_exists($this->path)) {
@@ -87,6 +89,7 @@ class RateLimiter
         return json_decode($json ?: '{}', true) ?: [];
     }
 
+    /** @param array<string, array{count: int, locked_until?: int}> $data */
     private function save(array $data): void
     {
         if (empty($data)) {
@@ -98,7 +101,11 @@ class RateLimiter
         file_put_contents($this->path, json_encode($data), LOCK_EX);
     }
 
-    /** Remove expired lockout entries. */
+    /**
+     * Remove expired lockout entries.
+     *
+     * @param array<string, array{count: int, locked_until?: int}> $data
+     */
     private function cleanup(array &$data): void
     {
         $now = time();

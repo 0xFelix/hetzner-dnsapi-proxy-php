@@ -20,6 +20,10 @@ class Config
     /** @var string[] */
     public readonly array $endpoints;
 
+    /**
+     * @param array<array{username: string, password: string, domains: string[]}> $users
+     * @param string[] $endpoints
+     */
     private function __construct(string $token, int $recordTtl, array $users, array $endpoints)
     {
         $this->token = $token;
