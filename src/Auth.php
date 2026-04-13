@@ -20,8 +20,8 @@ class Auth
      */
     public function extractBasicAuth(): ?array
     {
-        $username = Sanitize::stripControl($_SERVER['PHP_AUTH_USER'] ?? '');
-        $password = Sanitize::stripControl($_SERVER['PHP_AUTH_PW'] ?? '');
+        $username = $_SERVER['PHP_AUTH_USER'] ?? '';
+        $password = $_SERVER['PHP_AUTH_PW'] ?? '';
 
         if ($username !== '' && $password !== '') {
             return [$username, $password];

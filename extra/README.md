@@ -40,8 +40,8 @@ AcmeDnsHandler needs `extractApiKeyAuth()`, DirectAdminHandler needs
  */
 public function extractApiKeyAuth(): ?array
 {
-    $username = Sanitize::stripControl($_SERVER['HTTP_X_API_USER'] ?? '');
-    $password = Sanitize::stripControl($_SERVER['HTTP_X_API_KEY'] ?? '');
+    $username = $_SERVER['HTTP_X_API_USER'] ?? '';
+    $password = $_SERVER['HTTP_X_API_KEY'] ?? '';
 
     if ($username !== '' && $password !== '') {
         return [$username, $password];
