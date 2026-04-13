@@ -71,21 +71,16 @@ class Auth
      */
     private function findUser(string $username, string $password): ?array
     {
+        $match = null;
         foreach ($this->config->users as $user) {
-            if (!hash_equals($user['username'], $username)) {
-                continue;
-            }
-
-            if (hash_equals($user['password'], $password)) {
+            $userMatch = hash_equals($user['username'], $username);
+            $passMatch = hash_equals($user['password'], $password);
+            if ($userMatch && $passMatch) {
                 unset($user['password']);
-                return $user;
+                $match = $user;
             }
-
-            // Username matched but password failed - stop searching
-            return null;
         }
-
-        return null;
+        return $match;
     }
 
     /**
