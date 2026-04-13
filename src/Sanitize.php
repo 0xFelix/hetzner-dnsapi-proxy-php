@@ -14,12 +14,6 @@ class Sanitize
         return (bool) preg_match('/[\x00-\x1F\x7F]/', $input);
     }
 
-    /** Strip control characters (0x00-0x1F, 0x7F) from a string. */
-    public static function stripControl(string $input): string
-    {
-        return preg_replace('/[\x00-\x1F\x7F]/', '', $input);
-    }
-
     /** Validate a TXT record value. Returns null on success, error message on failure. */
     public static function validateTxt(string $value): ?string
     {

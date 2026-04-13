@@ -23,29 +23,6 @@ class SanitizeTest extends TestCase
         $this->assertFalse(Sanitize::hasControl(''));
     }
 
-    public function testStripControlRemovesNewlines(): void
-    {
-        $this->assertSame('abcdef', Sanitize::stripControl("abc\ndef"));
-        $this->assertSame('abcdef', Sanitize::stripControl("abc\rdef"));
-        $this->assertSame('abcdef', Sanitize::stripControl("abc\r\ndef"));
-    }
-
-    public function testStripControlRemovesNullByte(): void
-    {
-        $this->assertSame('abcdef', Sanitize::stripControl("abc\x00def"));
-    }
-
-    public function testStripControlPreservesNormalChars(): void
-    {
-        $input = 'sub.example.com';
-        $this->assertSame($input, Sanitize::stripControl($input));
-    }
-
-    public function testStripControlPreservesSpaces(): void
-    {
-        $this->assertSame('hello world', Sanitize::stripControl('hello world'));
-    }
-
     public function testValidateTxtAcceptsNormal(): void
     {
         $this->assertNull(Sanitize::validateTxt('dGVzdA=='));
