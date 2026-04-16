@@ -20,16 +20,44 @@ class Config
     /** @var string[] */
     public readonly array $endpoints;
 
+    public readonly float $rateLimitRps;
+
+    public readonly int $rateLimitBurst;
+
+    public readonly int $rateLimitIdleSeconds;
+
+    public readonly int $lockoutMaxAttempts;
+
+    public readonly int $lockoutDurationSeconds;
+
+    public readonly int $lockoutWindowSeconds;
+
     /**
      * @param array<array{username: string, password: string, domains: string[]}> $users
      * @param string[] $endpoints
      */
-    private function __construct(string $token, int $recordTtl, array $users, array $endpoints)
-    {
+    private function __construct(
+        string $token,
+        int $recordTtl,
+        array $users,
+        array $endpoints,
+        float $rateLimitRps,
+        int $rateLimitBurst,
+        int $rateLimitIdleSeconds,
+        int $lockoutMaxAttempts,
+        int $lockoutDurationSeconds,
+        int $lockoutWindowSeconds,
+    ) {
         $this->token = $token;
         $this->recordTtl = $recordTtl;
         $this->users = $users;
         $this->endpoints = $endpoints;
+        $this->rateLimitRps = $rateLimitRps;
+        $this->rateLimitBurst = $rateLimitBurst;
+        $this->rateLimitIdleSeconds = $rateLimitIdleSeconds;
+        $this->lockoutMaxAttempts = $lockoutMaxAttempts;
+        $this->lockoutDurationSeconds = $lockoutDurationSeconds;
+        $this->lockoutWindowSeconds = $lockoutWindowSeconds;
     }
 
     public static function load(string $path): self
@@ -78,6 +106,43 @@ class Config
             );
         }
 
-        return new self($token, $recordTtl, $users, $endpoints);
+        $rateLimitRps = (float) ($config['rate_limit_rps'] ?? 5.0);
+        if ($rateLimitRps <= 0) {
+            throw new InvalidArgumentException('Config: rate_limit_rps must be > 0');
+        }
+        $rateLimitBurst = (int) ($config['rate_limit_burst'] ?? 10);
+        if ($rateLimitBurst <= 0) {
+            throw new InvalidArgumentException('Config: rate_limit_burst must be > 0');
+        }
+        $rateLimitIdleSeconds = (int) ($config['rate_limit_idle_seconds'] ?? 600);
+        if ($rateLimitIdleSeconds <= 0) {
+            throw new InvalidArgumentException('Config: rate_limit_idle_seconds must be > 0');
+        }
+
+        $lockoutMaxAttempts = (int) ($config['lockout_max_attempts'] ?? 10);
+        if ($lockoutMaxAttempts <= 0) {
+            throw new InvalidArgumentException('Config: lockout_max_attempts must be > 0');
+        }
+        $lockoutDurationSeconds = (int) ($config['lockout_duration_seconds'] ?? 3600);
+        if ($lockoutDurationSeconds <= 0) {
+            throw new InvalidArgumentException('Config: lockout_duration_seconds must be > 0');
+        }
+        $lockoutWindowSeconds = (int) ($config['lockout_window_seconds'] ?? 900);
+        if ($lockoutWindowSeconds <= 0) {
+            throw new InvalidArgumentException('Config: lockout_window_seconds must be > 0');
+        }
+
+        return new self(
+            $token,
+            $recordTtl,
+            $users,
+            $endpoints,
+            $rateLimitRps,
+            $rateLimitBurst,
+            $rateLimitIdleSeconds,
+            $lockoutMaxAttempts,
+            $lockoutDurationSeconds,
+            $lockoutWindowSeconds,
+        );
     }
 }

@@ -38,7 +38,7 @@ class RateLimiterTest extends TestCase
         $this->assertFalse($rl->isBlocked('1.2.3.4'));
     }
 
-    public function testBlockedAfterTenFailures(): void
+    public function testBlockedAfterMaxAttempts(): void
     {
         $rl = new RateLimiter($this->path);
         for ($i = 0; $i < 9; $i++) {
@@ -66,7 +66,6 @@ class RateLimiterTest extends TestCase
         }
         $rl->reset('1.2.3.4');
 
-        // Should need another 10 failures to trigger lockout
         for ($i = 0; $i < 9; $i++) {
             $rl->recordFailure('1.2.3.4');
         }
@@ -81,5 +80,43 @@ class RateLimiterTest extends TestCase
 
         $rl->reset('1.2.3.4');
         $this->assertFileDoesNotExist($this->path);
+    }
+
+    public function testCustomMaxAttempts(): void
+    {
+        $rl = new RateLimiter($this->path, maxAttempts: 3);
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+        $this->assertTrue($rl->recordFailure('1.2.3.4'));
+        $this->assertTrue($rl->isBlocked('1.2.3.4'));
+    }
+
+    public function testWindowDecay(): void
+    {
+        // Use a 1-second window so we can test expiry
+        $rl = new RateLimiter($this->path, maxAttempts: 3, windowSeconds: 1);
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+
+        sleep(2);
+
+        // Old failures decayed, counter resets
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+        $this->assertFalse($rl->isBlocked('1.2.3.4'));
+    }
+
+    public function testStalePartialEntriesCleanedUp(): void
+    {
+        $rl = new RateLimiter($this->path, maxAttempts: 3, windowSeconds: 1);
+        $rl->recordFailure('1.2.3.4');
+
+        sleep(2);
+
+        // Recording a failure for another IP should clean up the stale entry
+        $rl->recordFailure('5.6.7.8');
+
+        $data = json_decode((string) file_get_contents($this->path), true);
+        $this->assertArrayNotHasKey('1.2.3.4', $data);
+        $this->assertArrayHasKey('5.6.7.8', $data);
     }
 }
