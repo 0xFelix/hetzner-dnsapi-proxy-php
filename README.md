@@ -19,7 +19,7 @@ Endpoints can be selectively enabled via the `endpoints` config option.
 
 ## Requirements
 
-- PHP >= 8.3
+- PHP >= 8.4
 - Apache with mod_rewrite
 - Composer
 
@@ -60,6 +60,28 @@ By default both endpoints (`plain` and `nicupdate`) are enabled. To restrict:
 
 Only enable the endpoints you actually use. Fewer endpoints means less attack
 surface.
+
+### Rate limiting and auth-failure lockout
+
+Both features are always enabled and work per client IP.
+
+**Token-bucket rate limiting** throttles all requests. Excess requests get
+HTTP 429 (or the DynDNS2 `abuse` token on `/nic/update`).
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `rate_limit_rps` | `5.0` | Tokens refilled per second |
+| `rate_limit_burst` | `10` | Maximum burst size |
+| `rate_limit_idle_seconds` | `600` | Seconds before idle bucket is removed |
+
+**Auth-failure lockout** locks out a client IP after repeated auth failures.
+A successful auth clears the counter.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `lockout_max_attempts` | `10` | Failures before lockout |
+| `lockout_duration_seconds` | `3600` | Lockout duration |
+| `lockout_window_seconds` | `900` | Window for counting failures |
 
 ### Example config
 
@@ -169,7 +191,8 @@ Expected responses:
 
 ```sh
 composer install
-vendor/bin/phpunit
+composer lint    # PHPStan static analysis
+composer test    # PHPUnit tests
 php -S localhost:8080 -t public/
 ```
 

@@ -10,10 +10,11 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 
 ## Stack
 
-- PHP >= 8.3
+- PHP >= 8.4
 - `lkdevelopment/hetzner-cloud-php-sdk` v3 for Hetzner Cloud API
 - `jeremykendall/php-domain-parser` v6 for FQDN splitting
 - PHPUnit 13 for testing
+- PHPStan for static analysis
 
 ## Layout
 
@@ -28,11 +29,21 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 ## Commands
 
 - `composer install` - Install dependencies and download public suffix list
-- `vendor/bin/phpunit` - Run all tests
+- `composer test` - Run all tests (PHPUnit)
+- `composer lint` - Run static analysis (PHPStan)
 - `vendor/bin/phpunit --testsuite Unit` - Run unit tests only
 - `vendor/bin/phpunit --testsuite Integration` - Run integration tests only
 - `php -S localhost:8080 -t public/` - Start dev server
 
+Always run `composer lint` and `composer test` before submitting changes.
+
 ## Auth
 
 Passwords are stored as plaintext in config.php.
+
+## Rate limiting and lockout
+
+Per-client-IP token-bucket rate limiting (`TokenBucket`) and auth-failure
+lockout (`RateLimiter`) are always enabled. Both use file-based storage
+with `flock(LOCK_EX)` for concurrency safety. Configuration is in
+`config.php` (see `config.sample.php` for available options and defaults).
