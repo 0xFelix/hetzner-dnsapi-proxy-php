@@ -24,7 +24,11 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 - `tests/Integration/` - Integration tests with mock DNS service
 - `public/` - Web root (index.php entry point, .htaccess)
 - `config.php` - Runtime config (gitignored, see config.sample.php)
-- `data/` - Downloaded public suffix list (auto-fetched by composer)
+- `data/` - Downloaded public suffix list (auto-fetched by composer),
+  plus runtime state files (app.log, token_bucket.json, rate_limit.json).
+  Protected by `data/.htaccess` (`Require all denied`).
+- `extra/` - Optional handlers (acmedns, httpreq, directadmin) not wired by
+  default. See `extra/README.md` to re-enable.
 
 ## Commands
 
@@ -37,13 +41,18 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 
 Always run `composer lint` and `composer test` before submitting changes.
 
-## Auth
-
-Passwords are stored as plaintext in config.php.
-
 ## Rate limiting and lockout
 
 Per-client-IP token-bucket rate limiting (`TokenBucket`) and auth-failure
 lockout (`RateLimiter`) are always enabled. Both use file-based storage
-with `flock(LOCK_EX)` for concurrency safety. Configuration is in
-`config.php` (see `config.sample.php` for available options and defaults).
+with `flock(LOCK_EX)` for concurrency safety and **fail closed** if the
+state file cannot be opened. Configuration is in `config.php` (see
+`config.sample.php` for available options and defaults).
+
+## Client IP resolution
+
+`ClientIp::fromServer()` returns `REMOTE_ADDR` by default. If
+`client_ip_header` is configured, the forwarded header is only honored
+when `REMOTE_ADDR` is listed in `trusted_proxies` - otherwise it is
+ignored so clients cannot spoof the header to bypass rate limiting or
+lockout. The resolved IP is passed to handlers and the logger.

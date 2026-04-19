@@ -147,16 +147,16 @@ Add the route blocks after the existing ones:
 
 ```php
 if (isset($active['acmedns'])) {
-    $acme = new AcmeDnsHandler($auth, $dns, $log, $rateLimiter);
+    $acme = new AcmeDnsHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->post('/acmedns/update', [$acme, 'handle']);
 }
 if (isset($active['httpreq'])) {
-    $httpreq = new HttpReqHandler($auth, $dns, $log, $rateLimiter);
+    $httpreq = new HttpReqHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->post('/httpreq/present', [$httpreq, 'handlePresent']);
     $router->post('/httpreq/cleanup', [$httpreq, 'handleCleanup']);
 }
 if (isset($active['directadmin'])) {
-    $da = new DirectAdminHandler($auth, $dns, $log, $rateLimiter);
+    $da = new DirectAdminHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/directadmin/CMD_API_SHOW_DOMAINS', [$da, 'showDomains']);
     $router->get('/directadmin/CMD_API_DNS_CONTROL', [$da, 'dnsControl']);
     $router->get('/directadmin/CMD_API_DOMAIN_POINTER', [$da, 'domainPointer']);
