@@ -19,7 +19,7 @@ class HttpReqHandlerTest extends HandlerTestCase
 
     public function testPresentCreatesTxt(): void
     {
-        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'test-val']);
+        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'test-val'], JSON_THROW_ON_ERROR);
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
@@ -37,7 +37,7 @@ class HttpReqHandlerTest extends HandlerTestCase
 
     public function testCleanupCallsClean(): void
     {
-        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => '']);
+        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => ''], JSON_THROW_ON_ERROR);
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
@@ -50,7 +50,7 @@ class HttpReqHandlerTest extends HandlerTestCase
 
     public function testWrongContentType(): void
     {
-        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'val']);
+        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'val'], JSON_THROW_ON_ERROR);
         $this->setContentType('text/plain');
         $this->setBasicAuth('alice', 'secret');
 
@@ -62,7 +62,7 @@ class HttpReqHandlerTest extends HandlerTestCase
 
     public function testMissingValueOnPresent(): void
     {
-        $body = json_encode(['fqdn' => 'sub.example.com.']);
+        $body = json_encode(['fqdn' => 'sub.example.com.'], JSON_THROW_ON_ERROR);
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
@@ -74,7 +74,7 @@ class HttpReqHandlerTest extends HandlerTestCase
 
     public function testAuthFailure(): void
     {
-        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'val']);
+        $body = json_encode(['fqdn' => 'sub.example.com.', 'value' => 'val'], JSON_THROW_ON_ERROR);
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'wrong');
 

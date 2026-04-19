@@ -11,11 +11,12 @@ mod_rewrite.
 |--------|------|------|----------|
 | GET | `/plain/update` | Basic Auth | Custom |
 | GET | `/nic/update` | Basic Auth | DynDNS2 |
+| POST | `/acmedns/update` | `X-Api-User` / `X-Api-Key` | acme-dns |
+| POST | `/httpreq/present`, `/httpreq/cleanup` | Basic Auth | lego httpreq |
+| GET | `/directadmin/CMD_API_*` | Basic Auth | DirectAdmin |
 
-Additional handlers (acme-dns, lego httpreq, DirectAdmin) are available in the
-`extra/` directory. See `extra/README.md` for instructions.
-
-Endpoints can be selectively enabled via the `endpoints` config option.
+Endpoints are selectively enabled via the `endpoints` config option. Only
+enable what you actually use.
 
 ## Requirements
 
@@ -52,7 +53,7 @@ checklist below.
 
 ### Endpoint selection
 
-By default both endpoints (`plain` and `nicupdate`) are enabled. To restrict:
+By default all endpoints are enabled. To restrict:
 
 ```php
 'endpoints' => ['plain'],

@@ -83,6 +83,12 @@ class HttpReqHandler
         $fqdn = $data['fqdn'] ?? '';
         $value = $data['value'] ?? '';
 
+        if (!is_string($fqdn) || !is_string($value)) {
+            http_response_code(400);
+            echo 'fqdn and value must be strings';
+            return;
+        }
+
         if ($fqdn === '') {
             http_response_code(400);
             echo 'fqdn is missing';

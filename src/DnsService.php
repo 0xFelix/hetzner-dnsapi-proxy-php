@@ -37,4 +37,18 @@ class DnsService implements DnsServiceInterface
         $zone->createRRSet($data->name, $data->type, $record, $this->config->recordTtl);
     }
 
+    public function clean(RequestData $data): void
+    {
+        $zone = $this->client->zones()->getByName($data->zone);
+        if ($zone === null) {
+            throw new \RuntimeException('Zone not found: ' . $data->zone);
+        }
+
+        $rrSets = $zone->allRRSets(new RRSetRequestOpts($data->name, $data->type));
+        if (empty($rrSets)) {
+            return;
+        }
+
+        $rrSets[0]->removeRecords($rrSets[0]->records);
+    }
 }

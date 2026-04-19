@@ -7,4 +7,6 @@ namespace HetznerDnsapiProxy;
 interface DnsServiceInterface
 {
     public function update(RequestData $data): void;
+
+    public function clean(RequestData $data): void;
 }

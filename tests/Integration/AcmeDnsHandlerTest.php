@@ -19,7 +19,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
 
     public function testValidTxtUpdate(): void
     {
-        $body = json_encode(['subdomain' => 'example.com', 'txt' => 'challenge-value']);
+        $body = json_encode(['subdomain' => 'example.com', 'txt' => 'challenge-value'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
         [$code, $output] = $this->captureOutput(fn() => $this->handler->handle($body));
@@ -40,7 +40,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
 
     public function testPrefixAlreadyPresent(): void
     {
-        $body = json_encode(['subdomain' => '_acme-challenge.example.com', 'txt' => 'val']);
+        $body = json_encode(['subdomain' => '_acme-challenge.example.com', 'txt' => 'val'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
         [$code] = $this->captureOutput(fn() => $this->handler->handle($body));
@@ -51,7 +51,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
 
     public function testMissingFields(): void
     {
-        $body = json_encode(['subdomain' => 'example.com']);
+        $body = json_encode(['subdomain' => 'example.com'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
         [$code, $output] = $this->captureOutput(fn() => $this->handler->handle($body));
@@ -62,7 +62,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
 
     public function testAuthFailure(): void
     {
-        $body = json_encode(['subdomain' => 'example.com', 'txt' => 'val']);
+        $body = json_encode(['subdomain' => 'example.com', 'txt' => 'val'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'wrong');
 
         [$code] = $this->captureOutput(fn() => $this->handler->handle($body));

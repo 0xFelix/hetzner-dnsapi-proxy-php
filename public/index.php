@@ -8,6 +8,9 @@ use HetznerDnsapiProxy\Auth;
 use HetznerDnsapiProxy\ClientIp;
 use HetznerDnsapiProxy\Config;
 use HetznerDnsapiProxy\DnsService;
+use HetznerDnsapiProxy\Handler\AcmeDnsHandler;
+use HetznerDnsapiProxy\Handler\DirectAdminHandler;
+use HetznerDnsapiProxy\Handler\HttpReqHandler;
 use HetznerDnsapiProxy\Handler\NicUpdateHandler;
 use HetznerDnsapiProxy\Handler\PlainHandler;
 use HetznerDnsapiProxy\Logger;
@@ -62,6 +65,21 @@ if (isset($active['plain'])) {
 if (isset($active['nicupdate'])) {
     $nic = new NicUpdateHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/nic/update', [$nic, 'handle']);
+}
+if (isset($active['acmedns'])) {
+    $acme = new AcmeDnsHandler($auth, $dns, $log, $rateLimiter, $clientIp);
+    $router->post('/acmedns/update', [$acme, 'handle']);
+}
+if (isset($active['httpreq'])) {
+    $httpreq = new HttpReqHandler($auth, $dns, $log, $rateLimiter, $clientIp);
+    $router->post('/httpreq/present', [$httpreq, 'handlePresent']);
+    $router->post('/httpreq/cleanup', [$httpreq, 'handleCleanup']);
+}
+if (isset($active['directadmin'])) {
+    $da = new DirectAdminHandler($auth, $dns, $log, $rateLimiter, $clientIp);
+    $router->get('/directadmin/CMD_API_SHOW_DOMAINS', [$da, 'showDomains']);
+    $router->get('/directadmin/CMD_API_DNS_CONTROL', [$da, 'dnsControl']);
+    $router->get('/directadmin/CMD_API_DOMAIN_POINTER', [$da, 'domainPointer']);
 }
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';

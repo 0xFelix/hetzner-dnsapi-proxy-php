@@ -47,6 +47,8 @@ abstract class HandlerTestCase extends TestCase
         $_SERVER['PHP_AUTH_USER'] = '';
         $_SERVER['PHP_AUTH_PW'] = '';
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+        unset($_SERVER['HTTP_X_API_USER'], $_SERVER['HTTP_X_API_KEY']);
+        unset($_SERVER['CONTENT_TYPE'], $_SERVER['HTTP_CONTENT_TYPE']);
     }
 
     protected function tearDown(): void
@@ -61,7 +63,16 @@ abstract class HandlerTestCase extends TestCase
         $_SERVER['PHP_AUTH_PW'] = $password;
     }
 
+    protected function setApiKeyAuth(string $user, string $key): void
+    {
+        $_SERVER['HTTP_X_API_USER'] = $user;
+        $_SERVER['HTTP_X_API_KEY'] = $key;
+    }
 
+    protected function setContentType(string $type): void
+    {
+        $_SERVER['CONTENT_TYPE'] = $type;
+    }
 
     /**
      * Capture handler output and return [statusCode, body].
