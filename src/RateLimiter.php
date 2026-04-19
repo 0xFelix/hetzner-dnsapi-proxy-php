@@ -15,7 +15,9 @@ class RateLimiter
 
     public function isBlocked(string $ip): bool
     {
-        return $this->withLock(function (array &$data) use ($ip): bool {
+        // Fail closed: if the state file can't be opened, treat every IP as
+        // blocked rather than silently disabling lockout.
+        return $this->withLock(true, function (array &$data) use ($ip): bool {
             $entry = $data[$ip] ?? null;
             if ($entry === null) {
                 return false;
@@ -36,7 +38,9 @@ class RateLimiter
     /** Record a failed attempt. Returns true if this failure triggered a lockout. */
     public function recordFailure(string $ip): bool
     {
-        return $this->withLock(function (array &$data) use ($ip): bool {
+        // If the store is broken we can't tell whether this triggered a
+        // lockout; report false. isBlocked() will already be denying requests.
+        return $this->withLock(false, function (array &$data) use ($ip): bool {
             $now = time();
             $entry = $data[$ip] ?? null;
 
@@ -62,18 +66,19 @@ class RateLimiter
 
     public function reset(string $ip): void
     {
-        $this->withLock(function (array &$data) use ($ip): bool {
+        $this->withLock(false, function (array &$data) use ($ip): bool {
             unset($data[$ip]);
             return false;
         });
     }
 
     /** @param callable(array<string, mixed>&): bool $fn */
-    private function withLock(callable $fn): bool
+    private function withLock(bool $failResult, callable $fn): bool
     {
-        $fh = fopen($this->path, 'c+');
+        $fh = @fopen($this->path, 'c+');
         if ($fh === false) {
-            return false;
+            error_log('RateLimiter: failed to open ' . $this->path);
+            return $failResult;
         }
 
         $data = [];
@@ -88,16 +93,16 @@ class RateLimiter
             ftruncate($fh, 0);
             if (!empty($data)) {
                 fwrite($fh, (string) json_encode($data));
+            } else {
+                // Unlink while the lock is held so a racing writer can't
+                // have its data silently deleted after we release.
+                @unlink($this->path);
             }
 
             return $result;
         } finally {
             flock($fh, LOCK_UN);
             fclose($fh);
-
-            if (empty($data) && file_exists($this->path)) {
-                @unlink($this->path);
-            }
         }
     }
 
