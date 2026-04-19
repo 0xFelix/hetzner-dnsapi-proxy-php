@@ -6,6 +6,17 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 RewriteRule ^(.*)$ public/$1 [L]
 
+# Defense in depth: if mod_rewrite is unavailable or misconfigured, still
+# refuse to serve config, lock files, or hidden files directly.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^(config\.php|config\.sample\.php|composer\.json|composer\.lock|phpstan\.neon|phpunit\.xml|deploy\.sh|AGENTS\.md|CLAUDE\.md|LICENSE|README\.md)$">
+    Require all denied
+</FilesMatch>
+# Block the non-web directories outright.
+RedirectMatch 404 ^/(data|src|tests|vendor|extra)(/|$)
+
 # Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
