@@ -23,11 +23,17 @@ class Auth
         $username = $_SERVER['PHP_AUTH_USER'] ?? '';
         $password = $_SERVER['PHP_AUTH_PW'] ?? '';
 
-        if ($username !== '' && $password !== '') {
-            return [$username, $password];
+        if ($username === '' || $password === '') {
+            return null;
         }
 
-        return null;
+        // Reject credentials with control characters to prevent log injection
+        // and other misuse; real usernames/passwords should never contain them.
+        if (Sanitize::hasControl($username) || Sanitize::hasControl($password)) {
+            return null;
+        }
+
+        return [$username, $password];
     }
 
     /**
@@ -52,6 +58,14 @@ class Auth
     public function checkPermission(string $fqdn, array $user): bool
     {
         if ($fqdn === '') {
+            return false;
+        }
+
+        // DNS is case-insensitive; configured domains are normalized to lowercase.
+        $fqdn = strtolower($fqdn);
+
+        // Reject FQDNs with empty labels (leading/trailing dot, double dot).
+        if (in_array('', explode('.', $fqdn), true)) {
             return false;
         }
 
