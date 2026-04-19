@@ -8,9 +8,9 @@ return [
     'record_ttl' => 60,
 
     // Active endpoint groups (omit to enable all)
-    // Available: 'plain', 'nicupdate', 'acmedns', 'httpreq', 'directadmin'
+    // Available: 'plain', 'nic', 'acmedns', 'httpreq', 'directadmin'
     // Only enable what you actually use - fewer endpoints is less attack surface.
-    // 'endpoints' => ['plain', 'nicupdate'],
+    // 'endpoints' => ['plain', 'nic'],
 
     // Per-client-IP token-bucket rate limiting
     // 'rate_limit_rps' => 5.0,
