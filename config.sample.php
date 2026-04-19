@@ -23,6 +23,13 @@ return [
     // 'lockout_duration_seconds' => 3600,
     // 'lockout_window_seconds' => 900,
 
+    // If requests arrive via a reverse proxy (CDN, shared hosting front-end),
+    // list its IP(s) here and name the header it uses to forward the real
+    // client IP. Only set client_ip_header when trusted_proxies is populated;
+    // otherwise the header can be spoofed to bypass rate limits and lockout.
+    // 'trusted_proxies' => ['203.0.113.10'],
+    // 'client_ip_header' => 'X-Forwarded-For',
+
     // Users with username/password and list of allowed domains
     // Wildcard domains (*.example.com) allow all subdomains
     'users' => [

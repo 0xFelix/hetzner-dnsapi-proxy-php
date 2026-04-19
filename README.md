@@ -83,6 +83,19 @@ A successful auth clears the counter.
 | `lockout_duration_seconds` | `3600` | Lockout duration |
 | `lockout_window_seconds` | `900` | Window for counting failures |
 
+### Reverse proxy / forwarded client IP
+
+If requests reach the proxy via a CDN or shared-hosting front-end, set
+`trusted_proxies` to the IP(s) of the front-end and `client_ip_header` to
+the header they use. The forwarded header is only honored when
+`REMOTE_ADDR` is in `trusted_proxies`; otherwise it is ignored so clients
+cannot spoof it to bypass rate limiting or lockout.
+
+```php
+'trusted_proxies' => ['203.0.113.10'],
+'client_ip_header' => 'X-Forwarded-For',
+```
+
 ### Example config
 
 ```php
