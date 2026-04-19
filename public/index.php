@@ -62,7 +62,7 @@ if (isset($active['plain'])) {
     $plain = new PlainHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/plain/update', [$plain, 'handle']);
 }
-if (isset($active['nicupdate'])) {
+if (isset($active['nic'])) {
     $nic = new NicUpdateHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/nic/update', [$nic, 'handle']);
 }
