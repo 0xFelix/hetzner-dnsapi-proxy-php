@@ -15,7 +15,9 @@ class TokenBucket
 
     public function allow(string $key): bool
     {
-        return $this->withLock(function (array &$data) use ($key): bool {
+        // Fail closed (deny) if the state file can't be opened — rate limiting
+        // is a security control and a broken store shouldn't silently disable it.
+        return $this->withLock(false, function (array &$data) use ($key): bool {
             $now = microtime(true);
             $entry = $data[$key] ?? null;
 
@@ -49,11 +51,12 @@ class TokenBucket
     }
 
     /** @param callable(array<string, mixed>&): bool $fn */
-    private function withLock(callable $fn): bool
+    private function withLock(bool $failResult, callable $fn): bool
     {
-        $fh = fopen($this->path, 'c+');
+        $fh = @fopen($this->path, 'c+');
         if ($fh === false) {
-            return true;
+            error_log('TokenBucket: failed to open ' . $this->path);
+            return $failResult;
         }
 
         $data = [];
@@ -68,16 +71,16 @@ class TokenBucket
             ftruncate($fh, 0);
             if (!empty($data)) {
                 fwrite($fh, (string) json_encode($data));
+            } else {
+                // Unlink while the lock is held so a racing writer can't
+                // have its data silently deleted after we release.
+                @unlink($this->path);
             }
 
             return $result;
         } finally {
             flock($fh, LOCK_UN);
             fclose($fh);
-
-            if (empty($data) && file_exists($this->path)) {
-                @unlink($this->path);
-            }
         }
     }
 }
