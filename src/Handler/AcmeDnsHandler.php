@@ -65,6 +65,12 @@ class AcmeDnsHandler
         $subdomain = $data['subdomain'] ?? '';
         $txt = $data['txt'] ?? '';
 
+        if (!is_string($subdomain) || !is_string($txt)) {
+            http_response_code(400);
+            echo 'subdomain and txt must be strings';
+            return;
+        }
+
         if ($subdomain === '' || $txt === '') {
             http_response_code(400);
             echo 'subdomain or txt is missing';

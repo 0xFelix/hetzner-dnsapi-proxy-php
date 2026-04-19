@@ -37,6 +37,27 @@ class Auth
     }
 
     /**
+     * Extract credentials from X-Api-User / X-Api-Key headers.
+     *
+     * @return array{string, string}|null [username, password] or null
+     */
+    public function extractApiKeyAuth(): ?array
+    {
+        $username = $_SERVER['HTTP_X_API_USER'] ?? '';
+        $password = $_SERVER['HTTP_X_API_KEY'] ?? '';
+
+        if ($username === '' || $password === '') {
+            return null;
+        }
+
+        if (Sanitize::hasControl($username) || Sanitize::hasControl($password)) {
+            return null;
+        }
+
+        return [$username, $password];
+    }
+
+    /**
      * Authenticate a user by username and password.
      *
      * @return array{username: string, domains: string[]}|null
@@ -76,6 +97,22 @@ class Auth
         }
 
         return false;
+    }
+
+    /**
+     * List the domains a user can manage, with wildcard prefixes stripped.
+     *
+     * @param array{username: string, domains: string[]} $user
+     * @return string[]
+     */
+    public function getDomains(array $user): array
+    {
+        $domains = [];
+        foreach ($user['domains'] as $domain) {
+            $domains[] = str_starts_with($domain, '*.') ? substr($domain, 2) : $domain;
+        }
+
+        return array_values(array_unique($domains));
     }
 
     /**

@@ -15,7 +15,7 @@ RewriteRule ^(.*)$ public/$1 [L]
     Require all denied
 </FilesMatch>
 # Block the non-web directories outright.
-RedirectMatch 404 ^/(data|src|tests|vendor|extra)(/|$)
+RedirectMatch 404 ^/(data|src|tests|vendor)(/|$)
 
 # Security headers
 <IfModule mod_headers.c>

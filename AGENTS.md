@@ -19,7 +19,9 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 ## Layout
 
 - `src/` - Application code (PSR-4 namespace `HetznerDnsapiProxy\`)
-- `src/Handler/` - Endpoint handlers (Plain, NicUpdate)
+- `src/Handler/` - Endpoint handlers (Plain, NicUpdate, AcmeDns, HttpReq,
+  DirectAdmin). All are wired in `public/index.php`; each is gated on its
+  name being listed in the `endpoints` config option.
 - `tests/Unit/` - Unit tests (no network calls)
 - `tests/Integration/` - Integration tests with mock DNS service
 - `public/` - Web root (index.php entry point, .htaccess)
@@ -27,8 +29,6 @@ PHP DNS API proxy for Hetzner Cloud DNS, compatible with [hetzner-dnsapi-proxy](
 - `data/` - Downloaded public suffix list (auto-fetched by composer),
   plus runtime state files (app.log, token_bucket.json, rate_limit.json).
   Protected by `data/.htaccess` (`Require all denied`).
-- `extra/` - Optional handlers (acmedns, httpreq, directadmin) not wired by
-  default. See `extra/README.md` to re-enable.
 
 ## Commands
 

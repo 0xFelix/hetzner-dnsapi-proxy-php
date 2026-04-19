@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 class Config
 {
-    public const ENDPOINTS = ['plain', 'nicupdate'];
+    public const ENDPOINTS = ['plain', 'nicupdate', 'acmedns', 'httpreq', 'directadmin'];
 
     /** @var array<array{username: string, password: string, domains: string[]}> */
     public readonly array $users;
