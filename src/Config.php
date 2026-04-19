@@ -32,9 +32,15 @@ class Config
 
     public readonly int $lockoutWindowSeconds;
 
+    /** @var string[] */
+    public readonly array $trustedProxies;
+
+    public readonly ?string $clientIpHeader;
+
     /**
      * @param array<array{username: string, password: string, domains: string[]}> $users
      * @param string[] $endpoints
+     * @param string[] $trustedProxies
      */
     private function __construct(
         string $token,
@@ -47,6 +53,8 @@ class Config
         int $lockoutMaxAttempts,
         int $lockoutDurationSeconds,
         int $lockoutWindowSeconds,
+        array $trustedProxies,
+        ?string $clientIpHeader,
     ) {
         $this->token = $token;
         $this->recordTtl = $recordTtl;
@@ -58,6 +66,8 @@ class Config
         $this->lockoutMaxAttempts = $lockoutMaxAttempts;
         $this->lockoutDurationSeconds = $lockoutDurationSeconds;
         $this->lockoutWindowSeconds = $lockoutWindowSeconds;
+        $this->trustedProxies = $trustedProxies;
+        $this->clientIpHeader = $clientIpHeader;
     }
 
     public static function load(string $path): self
@@ -84,7 +94,7 @@ class Config
         }
 
         $seen = [];
-        foreach ($users as $i => $user) {
+        foreach ($users as $i => &$user) {
             if (empty($user['username']) || empty($user['password']) || empty($user['domains'])) {
                 throw new InvalidArgumentException(
                     'Config: user at index ' . $i . ' must have username, password, and domains'
@@ -96,7 +106,10 @@ class Config
                 );
             }
             $seen[$user['username']] = true;
+            // Normalize domains to lowercase so checks match DNS's case-insensitive semantics.
+            $user['domains'] = array_values(array_map('strtolower', $user['domains']));
         }
+        unset($user);
 
         $endpoints = $config['endpoints'] ?? self::ENDPOINTS;
         $invalid = array_diff($endpoints, self::ENDPOINTS);
@@ -132,6 +145,30 @@ class Config
             throw new InvalidArgumentException('Config: lockout_window_seconds must be > 0');
         }
 
+        $trustedProxies = $config['trusted_proxies'] ?? [];
+        if (!is_array($trustedProxies)) {
+            throw new InvalidArgumentException('Config: trusted_proxies must be an array of IP strings');
+        }
+        foreach ($trustedProxies as $proxy) {
+            if (!is_string($proxy) || filter_var($proxy, FILTER_VALIDATE_IP) === false) {
+                throw new InvalidArgumentException('Config: trusted_proxies contains an invalid IP');
+            }
+        }
+        $trustedProxies = array_values($trustedProxies);
+
+        $clientIpHeader = $config['client_ip_header'] ?? null;
+        if ($clientIpHeader !== null) {
+            if (!is_string($clientIpHeader) || $clientIpHeader === '') {
+                throw new InvalidArgumentException('Config: client_ip_header must be a non-empty string');
+            }
+            if (!preg_match('/^[A-Za-z0-9-]+$/', $clientIpHeader)) {
+                throw new InvalidArgumentException('Config: client_ip_header must only contain letters, digits, and dashes');
+            }
+            if ($trustedProxies === []) {
+                throw new InvalidArgumentException('Config: client_ip_header requires at least one trusted_proxies entry');
+            }
+        }
+
         return new self(
             $token,
             $recordTtl,
@@ -143,6 +180,8 @@ class Config
             $lockoutMaxAttempts,
             $lockoutDurationSeconds,
             $lockoutWindowSeconds,
+            $trustedProxies,
+            $clientIpHeader,
         );
     }
 }

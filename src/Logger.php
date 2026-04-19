@@ -8,6 +8,7 @@ class Logger
 {
     public function __construct(
         private readonly string $path,
+        private readonly ?string $clientIp = null,
     ) {}
 
     public function info(string $message): void
@@ -22,7 +23,7 @@ class Logger
 
     private function write(string $level, string $message): void
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '-';
+        $ip = $this->clientIp ?? '-';
         $line = date('Y-m-d H:i:s') . ' [' . $level . '] [' . $ip . '] ' . $message . "\n";
         file_put_contents($this->path, $line, FILE_APPEND | LOCK_EX);
     }
