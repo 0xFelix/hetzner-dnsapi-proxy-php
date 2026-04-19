@@ -26,7 +26,7 @@
         "update-psl": "curl -sSf -o data/public_suffix_list.dat https://publicsuffix.org/list/public_suffix_list.dat",
         "post-install-cmd": "@update-psl",
         "post-update-cmd": "@update-psl",
-        "lint": "phpstan analyse",
+        "lint": "phpstan analyse --memory-limit=512M",
         "test": "phpunit"
     }
 }
