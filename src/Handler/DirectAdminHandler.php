@@ -95,10 +95,10 @@ class DirectAdminHandler
 
         $this->rateLimiter->reset($clientIp);
 
-        $domain = $_GET['domain'] ?? '';
-        $action = $_GET['action'] ?? '';
-        $name = $_GET['name'] ?? '';
-        $value = $_GET['value'] ?? '';
+        $domain = Sanitize::asString($_GET['domain'] ?? null);
+        $action = Sanitize::asString($_GET['action'] ?? null);
+        $name = Sanitize::asString($_GET['name'] ?? null);
+        $value = Sanitize::asString($_GET['value'] ?? null);
 
         if (Sanitize::hasControl($domain) || Sanitize::hasControl($name) || Sanitize::hasControl($value)) {
             http_response_code(400);
@@ -117,7 +117,7 @@ class DirectAdminHandler
             return;
         }
 
-        $recordType = $_GET['type'] ?? '';
+        $recordType = Sanitize::asString($_GET['type'] ?? null);
         if ($recordType !== 'A' && $recordType !== 'AAAA' && $recordType !== 'TXT') {
             http_response_code(400);
             echo 'type can only be A, AAAA or TXT';

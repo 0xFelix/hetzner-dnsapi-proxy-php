@@ -117,4 +117,19 @@ class DirectAdminHandlerTest extends HandlerTestCase
         $this->assertSame(401, $code);
         $this->assertEmpty($this->dns->updateCalls);
     }
+
+    public function testArrayQueryParamRejected(): void
+    {
+        $_GET['domain'] = ['example.com', 'other.com'];
+        $_GET['action'] = 'add';
+        $_GET['type'] = 'A';
+        $_GET['value'] = '1.2.3.4';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'dnsControl']);
+
+        $this->assertSame(400, $code);
+        $this->assertStringContainsString('missing', $body);
+        $this->assertEmpty($this->dns->updateCalls);
+    }
 }

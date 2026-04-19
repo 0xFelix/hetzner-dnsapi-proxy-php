@@ -8,6 +8,15 @@ class Sanitize
 {
     private const MAX_TXT_LENGTH = 255;
 
+    /**
+     * Coerce a $_GET / $_POST value to a string. Arrays (from ?foo[]=bar)
+     * and other non-string types are treated as missing and return ''.
+     */
+    public static function asString(mixed $value): string
+    {
+        return is_string($value) ? $value : '';
+    }
+
     /** Check if a string contains control characters (0x00-0x1F, 0x7F). */
     public static function hasControl(string $input): bool
     {

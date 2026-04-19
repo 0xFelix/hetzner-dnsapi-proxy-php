@@ -69,6 +69,19 @@ class PlainHandlerTest extends HandlerTestCase
         $this->assertStringContainsString('invalid ip', $body);
     }
 
+    public function testArrayQueryParamRejected(): void
+    {
+        $_GET['hostname'] = ['sub.example.com', 'other.example.com'];
+        $_GET['ip'] = '1.2.3.4';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(400, $code);
+        $this->assertStringContainsString('missing', $body);
+        $this->assertEmpty($this->dns->updateCalls);
+    }
+
     public function testAuthFailure(): void
     {
         $_GET['hostname'] = 'sub.example.com';
