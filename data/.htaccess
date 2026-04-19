@@ -1,0 +1,4 @@
+# State files (app.log, rate_limit.json, token_bucket.json, PSL) must never
+# be web-accessible. This is defense in depth; the root rewrite already
+# routes every request into public/.
+Require all denied
