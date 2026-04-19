@@ -22,14 +22,15 @@ class AcmeDnsHandler
         private readonly DnsServiceInterface $dns,
         private readonly Logger $log,
         private readonly RateLimiter $rateLimiter,
+        private readonly ?string $clientIp = null,
     ) {}
 
     public function handle(?string $rawBody = null): void
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
 
-        if ($this->rateLimiter->isBlocked($ip)) {
-            $this->log->info('acmedns: blocked request from locked out IP ' . $ip);
+        if ($this->rateLimiter->isBlocked($clientIp)) {
+            $this->log->info('acmedns: blocked request from locked out IP ' . $clientIp);
             http_response_code(429);
             return;
         }
@@ -42,16 +43,16 @@ class AcmeDnsHandler
 
         $user = $this->auth->authenticate($creds[0], $creds[1]);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($ip);
-            $this->log->info('acmedns: auth failed for user: ' . $creds[0] . ' from ' . $ip);
+            $locked = $this->rateLimiter->recordFailure($clientIp);
+            $this->log->info('acmedns: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
             if ($locked) {
-                $this->log->info('acmedns: locked out IP ' . $ip . ' after too many failures');
+                $this->log->info('acmedns: locked out IP ' . $clientIp . ' after too many failures');
             }
             http_response_code(401);
             return;
         }
 
-        $this->rateLimiter->reset($ip);
+        $this->rateLimiter->reset($clientIp);
 
         $body = $rawBody ?? file_get_contents('php://input', false, null, 0, self::MAX_BODY_SIZE);
         $data = json_decode($body ?: '', true);

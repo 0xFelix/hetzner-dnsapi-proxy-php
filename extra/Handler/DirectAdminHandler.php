@@ -19,14 +19,15 @@ class DirectAdminHandler
         private readonly DnsServiceInterface $dns,
         private readonly Logger $log,
         private readonly RateLimiter $rateLimiter,
+        private readonly ?string $clientIp = null,
     ) {}
 
     public function showDomains(): void
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
 
-        if ($this->rateLimiter->isBlocked($ip)) {
-            $this->log->info('directadmin: blocked request from locked out IP ' . $ip);
+        if ($this->rateLimiter->isBlocked($clientIp)) {
+            $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
             http_response_code(429);
             return;
         }
@@ -40,17 +41,17 @@ class DirectAdminHandler
 
         $user = $this->auth->authenticate($creds[0], $creds[1]);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($ip);
-            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $ip);
+            $locked = $this->rateLimiter->recordFailure($clientIp);
+            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
             if ($locked) {
-                $this->log->info('directadmin: locked out IP ' . $ip . ' after too many failures');
+                $this->log->info('directadmin: locked out IP ' . $clientIp . ' after too many failures');
             }
             header('WWW-Authenticate: Basic realm="Restricted"');
             http_response_code(401);
             return;
         }
 
-        $this->rateLimiter->reset($ip);
+        $this->rateLimiter->reset($clientIp);
 
         $domains = $this->auth->getDomains($user);
 
@@ -65,10 +66,10 @@ class DirectAdminHandler
 
     public function dnsControl(): void
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
 
-        if ($this->rateLimiter->isBlocked($ip)) {
-            $this->log->info('directadmin: blocked request from locked out IP ' . $ip);
+        if ($this->rateLimiter->isBlocked($clientIp)) {
+            $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
             http_response_code(429);
             return;
         }
@@ -82,17 +83,17 @@ class DirectAdminHandler
 
         $user = $this->auth->authenticate($creds[0], $creds[1]);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($ip);
-            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $ip);
+            $locked = $this->rateLimiter->recordFailure($clientIp);
+            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
             if ($locked) {
-                $this->log->info('directadmin: locked out IP ' . $ip . ' after too many failures');
+                $this->log->info('directadmin: locked out IP ' . $clientIp . ' after too many failures');
             }
             header('WWW-Authenticate: Basic realm="Restricted"');
             http_response_code(401);
             return;
         }
 
-        $this->rateLimiter->reset($ip);
+        $this->rateLimiter->reset($clientIp);
 
         $domain = $_GET['domain'] ?? '';
         $action = $_GET['action'] ?? '';

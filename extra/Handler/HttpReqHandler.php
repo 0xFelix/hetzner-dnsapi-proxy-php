@@ -21,6 +21,7 @@ class HttpReqHandler
         private readonly DnsServiceInterface $dns,
         private readonly Logger $log,
         private readonly RateLimiter $rateLimiter,
+        private readonly ?string $clientIp = null,
     ) {}
 
     public function handlePresent(?string $rawBody = null): void
@@ -35,10 +36,10 @@ class HttpReqHandler
 
     private function handle(bool $cleanup, ?string $rawBody = null): void
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
 
-        if ($this->rateLimiter->isBlocked($ip)) {
-            $this->log->info('httpreq: blocked request from locked out IP ' . $ip);
+        if ($this->rateLimiter->isBlocked($clientIp)) {
+            $this->log->info('httpreq: blocked request from locked out IP ' . $clientIp);
             http_response_code(429);
             return;
         }
@@ -52,17 +53,17 @@ class HttpReqHandler
 
         $user = $this->auth->authenticate($creds[0], $creds[1]);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($ip);
-            $this->log->info('httpreq: auth failed for user: ' . $creds[0] . ' from ' . $ip);
+            $locked = $this->rateLimiter->recordFailure($clientIp);
+            $this->log->info('httpreq: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
             if ($locked) {
-                $this->log->info('httpreq: locked out IP ' . $ip . ' after too many failures');
+                $this->log->info('httpreq: locked out IP ' . $clientIp . ' after too many failures');
             }
             header('WWW-Authenticate: Basic realm="Restricted"');
             http_response_code(401);
             return;
         }
 
-        $this->rateLimiter->reset($ip);
+        $this->rateLimiter->reset($clientIp);
 
         $contentType = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
         if (stripos($contentType, 'application/json') === false) {
