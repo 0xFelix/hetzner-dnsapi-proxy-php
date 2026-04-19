@@ -53,8 +53,8 @@ class PlainHandler
 
         $this->rateLimiter->reset($clientIp);
 
-        $hostname = $_GET['hostname'] ?? '';
-        $ip = $_GET['ip'] ?? '';
+        $hostname = Sanitize::asString($_GET['hostname'] ?? null);
+        $ip = Sanitize::asString($_GET['ip'] ?? null);
 
         if (Sanitize::hasControl($hostname) || Sanitize::hasControl($ip)) {
             http_response_code(400);

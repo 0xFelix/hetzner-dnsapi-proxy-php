@@ -108,6 +108,19 @@ class NicUpdateHandlerTest extends HandlerTestCase
         $this->assertSame('notfqdn', $body);
     }
 
+    public function testArrayQueryParamRejected(): void
+    {
+        $_GET['hostname'] = ['sub.example.com', 'other.example.com'];
+        $_GET['myip'] = '1.2.3.4';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(200, $code);
+        $this->assertSame('notfqdn', $body);
+        $this->assertEmpty($this->dns->updateCalls);
+    }
+
     public function testUnauthorizedDomain(): void
     {
         $_GET['hostname'] = 'sub.other.org';

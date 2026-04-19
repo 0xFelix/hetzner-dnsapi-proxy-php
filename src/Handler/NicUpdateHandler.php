@@ -58,7 +58,7 @@ class NicUpdateHandler
 
         $this->rateLimiter->reset($clientIp);
 
-        $hostname = $_GET['hostname'] ?? '';
+        $hostname = Sanitize::asString($_GET['hostname'] ?? null);
         if (Sanitize::hasControl($hostname)) {
             echo 'notfqdn';
             return;
@@ -68,7 +68,7 @@ class NicUpdateHandler
             return;
         }
 
-        $ip = $_GET['myip'] ?? '';
+        $ip = Sanitize::asString($_GET['myip'] ?? null);
         if (Sanitize::hasControl($ip)) {
             echo 'notfqdn';
             return;
