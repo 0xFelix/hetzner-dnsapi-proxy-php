@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class DirectAdminHandler
 {
+    use AuthenticatesRequests;
+
     private const RETRY_AFTER_SECONDS = 60;
 
     public function __construct(
@@ -26,34 +28,12 @@ class DirectAdminHandler
 
     public function showDomains(): void
     {
-        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+        $clientIp = $this->resolveClientIp();
 
-        if ($this->rateLimiter->isBlocked($clientIp)) {
-            $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
-            $this->rejectRateLimited();
-            return;
-        }
-
-        $creds = $this->auth->extractBasicAuth();
-        if ($creds === null) {
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
-            return;
-        }
-
-        $user = $this->auth->authenticate($creds[0], $creds[1]);
+        $user = $this->authenticateRequest('directadmin', $clientIp);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($clientIp);
-            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
-            if ($locked) {
-                $this->log->info('directadmin: locked out IP ' . $clientIp . ' after too many failures');
-            }
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
             return;
         }
-
-        $this->rateLimiter->reset($clientIp);
 
         $domains = $this->auth->getDomains($user);
 
@@ -68,34 +48,12 @@ class DirectAdminHandler
 
     public function dnsControl(): void
     {
-        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+        $clientIp = $this->resolveClientIp();
 
-        if ($this->rateLimiter->isBlocked($clientIp)) {
-            $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
-            $this->rejectRateLimited();
-            return;
-        }
-
-        $creds = $this->auth->extractBasicAuth();
-        if ($creds === null) {
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
-            return;
-        }
-
-        $user = $this->auth->authenticate($creds[0], $creds[1]);
+        $user = $this->authenticateRequest('directadmin', $clientIp);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($clientIp);
-            $this->log->info('directadmin: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
-            if ($locked) {
-                $this->log->info('directadmin: locked out IP ' . $clientIp . ' after too many failures');
-            }
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
             return;
         }
-
-        $this->rateLimiter->reset($clientIp);
 
         $domain = Sanitize::asString($_GET['domain'] ?? null);
         $action = Sanitize::asString($_GET['action'] ?? null);
@@ -144,7 +102,7 @@ class DirectAdminHandler
         }
 
         if (!$this->auth->checkPermission($fqdn, $user)) {
-            $this->log->info('directadmin: permission denied for user ' . $creds[0] . ' on ' . $fqdn);
+            $this->log->info('directadmin: permission denied for user ' . $user['username'] . ' on ' . $fqdn);
             http_response_code(403);
             return;
         }

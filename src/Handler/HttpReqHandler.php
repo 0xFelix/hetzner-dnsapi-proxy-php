@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class HttpReqHandler
 {
+    use AuthenticatesRequests;
+
     private const RETRY_AFTER_SECONDS = 60;
 
     private const MAX_BODY_SIZE = 1024;
@@ -38,34 +40,12 @@ class HttpReqHandler
 
     private function handle(bool $cleanup, ?string $rawBody = null): void
     {
-        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+        $clientIp = $this->resolveClientIp();
 
-        if ($this->rateLimiter->isBlocked($clientIp)) {
-            $this->log->info('httpreq: blocked request from locked out IP ' . $clientIp);
-            $this->rejectRateLimited();
-            return;
-        }
-
-        $creds = $this->auth->extractBasicAuth();
-        if ($creds === null) {
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
-            return;
-        }
-
-        $user = $this->auth->authenticate($creds[0], $creds[1]);
+        $user = $this->authenticateRequest('httpreq', $clientIp);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($clientIp);
-            $this->log->info('httpreq: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
-            if ($locked) {
-                $this->log->info('httpreq: locked out IP ' . $clientIp . ' after too many failures');
-            }
-            header('WWW-Authenticate: Basic realm="Restricted"');
-            http_response_code(401);
             return;
         }
-
-        $this->rateLimiter->reset($clientIp);
 
         $contentType = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
         if (stripos($contentType, 'application/json') === false) {
@@ -130,7 +110,7 @@ class HttpReqHandler
         }
 
         if (!$this->auth->checkPermission($fqdn, $user)) {
-            $this->log->info('httpreq: permission denied for user ' . $creds[0] . ' on ' . $fqdn);
+            $this->log->info('httpreq: permission denied for user ' . $user['username'] . ' on ' . $fqdn);
             http_response_code(403);
             return;
         }
