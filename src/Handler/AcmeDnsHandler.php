@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class AcmeDnsHandler
 {
+    private const RETRY_AFTER_SECONDS = 60;
+
     private const MAX_BODY_SIZE = 1024;
     private const ACME_CHALLENGE_PREFIX = '_acme-challenge.';
 
@@ -31,7 +33,7 @@ class AcmeDnsHandler
 
         if ($this->rateLimiter->isBlocked($clientIp)) {
             $this->log->info('acmedns: blocked request from locked out IP ' . $clientIp);
-            http_response_code(429);
+            $this->rejectRateLimited();
             return;
         }
 
@@ -121,5 +123,12 @@ class AcmeDnsHandler
         $this->log->info('acmedns: updated ' . $subdomain . ' TXT');
         header('Content-Type: application/json');
         echo json_encode(['txt' => $txt], JSON_THROW_ON_ERROR);
+    }
+
+    /** Response for a throttled or locked-out client. Also used by the front controller. */
+    public function rejectRateLimited(): void
+    {
+        http_response_code(429);
+        header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
     }
 }

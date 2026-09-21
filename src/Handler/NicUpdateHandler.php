@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class NicUpdateHandler
 {
+    private const RETRY_AFTER_SECONDS = 60;
+
     public function __construct(
         private readonly Auth $auth,
         private readonly DnsServiceInterface $dns,
@@ -30,8 +32,7 @@ class NicUpdateHandler
 
         if ($this->rateLimiter->isBlocked($clientIp)) {
             $this->log->info('nic: blocked request from locked out IP ' . $clientIp);
-            http_response_code(429);
-            echo 'abuse';
+            $this->rejectRateLimited();
             return;
         }
 
@@ -107,5 +108,14 @@ class NicUpdateHandler
         $this->log->info('nic: updated ' . $hostname . ' ' . $type . ' ' . $ip);
         http_response_code(200);
         echo 'good ' . $ip;
+    }
+
+    /** DynDNS2 response for a throttled or locked-out client. Also used by the front controller. */
+    public function rejectRateLimited(): void
+    {
+        header('Content-Type: text/plain; charset=utf-8');
+        http_response_code(429);
+        header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
+        echo 'abuse';
     }
 }

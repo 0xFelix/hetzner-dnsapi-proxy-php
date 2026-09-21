@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class HttpReqHandler
 {
+    private const RETRY_AFTER_SECONDS = 60;
+
     private const MAX_BODY_SIZE = 1024;
 
     public function __construct(
@@ -40,7 +42,7 @@ class HttpReqHandler
 
         if ($this->rateLimiter->isBlocked($clientIp)) {
             $this->log->info('httpreq: blocked request from locked out IP ' . $clientIp);
-            http_response_code(429);
+            $this->rejectRateLimited();
             return;
         }
 
@@ -149,5 +151,12 @@ class HttpReqHandler
         $op = $cleanup ? 'cleaned' : 'updated';
         $this->log->info('httpreq: ' . $op . ' ' . $fqdn . ' TXT');
         http_response_code(200);
+    }
+
+    /** Response for a throttled or locked-out client. Also used by the front controller. */
+    public function rejectRateLimited(): void
+    {
+        http_response_code(429);
+        header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
     }
 }

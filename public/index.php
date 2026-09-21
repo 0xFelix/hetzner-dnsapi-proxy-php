@@ -58,38 +58,51 @@ $rateLimiter = new RateLimiter(
 $router = new Router();
 $active = array_flip($config->endpoints);
 
+// Each route's own throttle response, so the front controller does not have to
+// re-encode which endpoint speaks which protocol.
+/** @var array<string, callable> $rateLimited */
+$rateLimited = [];
+
 if (isset($active['plain'])) {
     $plain = new PlainHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/plain/update', [$plain, 'handle']);
+    $rateLimited['/plain/update'] = [$plain, 'rejectRateLimited'];
 }
 if (isset($active['nic'])) {
     $nic = new NicUpdateHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/nic/update', [$nic, 'handle']);
+    $rateLimited['/nic/update'] = [$nic, 'rejectRateLimited'];
 }
 if (isset($active['acmedns'])) {
     $acme = new AcmeDnsHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->post('/acmedns/update', [$acme, 'handle']);
+    $rateLimited['/acmedns/update'] = [$acme, 'rejectRateLimited'];
 }
 if (isset($active['httpreq'])) {
     $httpreq = new HttpReqHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->post('/httpreq/present', [$httpreq, 'handlePresent']);
     $router->post('/httpreq/cleanup', [$httpreq, 'handleCleanup']);
+    $rateLimited['/httpreq/present'] = [$httpreq, 'rejectRateLimited'];
+    $rateLimited['/httpreq/cleanup'] = [$httpreq, 'rejectRateLimited'];
 }
 if (isset($active['directadmin'])) {
     $da = new DirectAdminHandler($auth, $dns, $log, $rateLimiter, $clientIp);
     $router->get('/directadmin/CMD_API_SHOW_DOMAINS', [$da, 'showDomains']);
     $router->get('/directadmin/CMD_API_DNS_CONTROL', [$da, 'dnsControl']);
     $router->get('/directadmin/CMD_API_DOMAIN_POINTER', [$da, 'domainPointer']);
+    $rateLimited['/directadmin/CMD_API_SHOW_DOMAINS'] = [$da, 'rejectRateLimited'];
+    $rateLimited['/directadmin/CMD_API_DNS_CONTROL'] = [$da, 'rejectRateLimited'];
+    $rateLimited['/directadmin/CMD_API_DOMAIN_POINTER'] = [$da, 'rejectRateLimited'];
 }
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 if (!$tokenBucket->allow($clientIp)) {
     $log->info('rate limit exceeded for ' . $clientIp);
-    if ($path === '/nic/update') {
-        header('Content-Type: text/plain; charset=utf-8');
-        echo 'abuse';
+    if (isset($rateLimited[$path])) {
+        ($rateLimited[$path])();
     } else {
         http_response_code(429);
+        header('Retry-After: 60');
     }
     exit;
 }
