@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class AcmeDnsHandler
 {
+    use AuthenticatesRequests;
+
     private const RETRY_AFTER_SECONDS = 60;
 
     private const MAX_BODY_SIZE = 1024;
@@ -29,32 +31,12 @@ class AcmeDnsHandler
 
     public function handle(?string $rawBody = null): void
     {
-        $clientIp = $this->clientIp ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+        $clientIp = $this->resolveClientIp();
 
-        if ($this->rateLimiter->isBlocked($clientIp)) {
-            $this->log->info('acmedns: blocked request from locked out IP ' . $clientIp);
-            $this->rejectRateLimited();
-            return;
-        }
-
-        $creds = $this->auth->extractApiKeyAuth();
-        if ($creds === null) {
-            http_response_code(401);
-            return;
-        }
-
-        $user = $this->auth->authenticate($creds[0], $creds[1]);
+        $user = $this->authenticateRequest('acmedns', $clientIp);
         if ($user === null) {
-            $locked = $this->rateLimiter->recordFailure($clientIp);
-            $this->log->info('acmedns: auth failed for user: ' . $creds[0] . ' from ' . $clientIp);
-            if ($locked) {
-                $this->log->info('acmedns: locked out IP ' . $clientIp . ' after too many failures');
-            }
-            http_response_code(401);
             return;
         }
-
-        $this->rateLimiter->reset($clientIp);
 
         $body = $rawBody ?? file_get_contents('php://input', false, null, 0, self::MAX_BODY_SIZE);
         $data = json_decode($body ?: '', true);
@@ -101,7 +83,7 @@ class AcmeDnsHandler
         }
 
         if (!$this->auth->checkPermission($subdomain, $user)) {
-            $this->log->info('acmedns: permission denied for user ' . $creds[0] . ' on ' . $subdomain);
+            $this->log->info('acmedns: permission denied for user ' . $user['username'] . ' on ' . $subdomain);
             http_response_code(403);
             return;
         }
@@ -130,5 +112,16 @@ class AcmeDnsHandler
     {
         http_response_code(429);
         header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
+    }
+
+    /** acme-dns sends credentials in X-Api-User / X-Api-Key, not Basic Auth. */
+    protected function extractCredentials(): ?array
+    {
+        return $this->auth->extractApiKeyAuth();
+    }
+
+    protected function rejectUnauthenticated(): void
+    {
+        http_response_code(401);
     }
 }
