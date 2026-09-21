@@ -22,7 +22,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
         $body = json_encode(['subdomain' => 'example.com', 'txt' => 'challenge-value'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
-        [$code, $output] = $this->captureOutput(fn() => $this->handler->handle($body));
+        [$code, $output] = $this->captureOutput(fn () => $this->handler->handle($body));
 
         $this->assertSame(200, $code);
         $this->assertCount(1, $this->dns->updateCalls);
@@ -44,7 +44,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
         $body = json_encode(['subdomain' => '_acme-challenge.example.com', 'txt' => 'val'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handle($body));
+        [$code] = $this->captureOutput(fn () => $this->handler->handle($body));
 
         $this->assertSame(200, $code);
         $this->assertSame('_acme-challenge', $this->dns->updateCalls[0]->name);
@@ -55,7 +55,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
         $body = json_encode(['subdomain' => 'example.com'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'secret');
 
-        [$code, $output] = $this->captureOutput(fn() => $this->handler->handle($body));
+        [$code, $output] = $this->captureOutput(fn () => $this->handler->handle($body));
 
         $this->assertSame(400, $code);
         $this->assertStringContainsString('missing', $output);
@@ -66,7 +66,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
         $body = json_encode(['subdomain' => 'example.com', 'txt' => 'val'], JSON_THROW_ON_ERROR);
         $this->setApiKeyAuth('alice', 'wrong');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handle($body));
+        [$code] = $this->captureOutput(fn () => $this->handler->handle($body));
 
         $this->assertSame(401, $code);
         $this->assertEmpty($this->dns->updateCalls);
@@ -76,7 +76,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
     {
         $this->setApiKeyAuth('alice', 'secret');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handle('not json'));
+        [$code] = $this->captureOutput(fn () => $this->handler->handle('not json'));
 
         $this->assertSame(400, $code);
     }

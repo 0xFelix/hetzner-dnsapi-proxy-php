@@ -47,7 +47,7 @@ class FqdnUtil
             $path = dirname(__DIR__) . '/data/public_suffix_list.dat';
             if (!file_exists($path)) {
                 throw new \RuntimeException(
-                    'Public suffix list not found. Run: composer run-script update-psl'
+                    'Public suffix list not found. Run: composer run-script update-psl',
                 );
             }
             self::$rules = Rules::fromPath($path);
