@@ -62,12 +62,22 @@ By default all endpoints are enabled. To restrict:
 Only enable the endpoints you actually use. Fewer endpoints means less attack
 surface.
 
+### Hostnames
+
+Hostname matching is case-insensitive, so `Www.Example.com` and
+`WWW.EXAMPLE.COM` both resolve against a configured `*.example.com`. Domains
+in `config.php` are lowercased the same way.
+
+Hostnames with empty labels are rejected, which includes a trailing dot
+(`www.example.com.`) and doubled dots (`www..example.com`).
+
 ### Rate limiting and auth-failure lockout
 
 Both features are always enabled and work per client IP.
 
 **Token-bucket rate limiting** throttles all requests. Excess requests get
-HTTP 429 (or the DynDNS2 `abuse` token on `/nic/update`).
+HTTP 429 with a `Retry-After` header, plus the DynDNS2 `abuse` token in the
+body on `/nic/update`. A locked-out client gets the same response.
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -127,6 +137,9 @@ Before deploying, verify:
 - [ ] `config.php` is not committed to version control
 - [ ] The webserver does not serve `config.php` directly (the `.htaccess`
       files handle this for Apache)
+- [ ] The webserver does not serve `data/` (`data/.htaccess` denies it; the
+      directory holds the request log, rate-limit buckets and lockout counters)
+- [ ] `composer audit --no-dev` reports no advisories
 
 ### Deploy via rclone
 
@@ -161,13 +174,13 @@ Only production files are synced (src/, public/, vendor/, data/, config.php,
 2. Upload these files/directories to your webspace:
    - `.htaccess` (root)
    - `config.php`
-   - `data/`
+   - `data/` (including `data/.htaccess`)
    - `public/`
    - `src/`
    - `vendor/`
-3. Do **not** upload: `tests/`, `phpunit.xml`, `composer.json`,
-   `composer.lock`, `.git/`, `.claude/`, `AGENTS.md`, `CLAUDE.md`,
-   `deploy.sh`
+3. Do **not** upload: `tests/`, `bin/`, `phpunit.xml`, `phpstan.neon`,
+   `.php-cs-fixer.php`, `composer.json`, `composer.lock`, `.git/`,
+   `.claude/`, `AGENTS.md`, `CLAUDE.md`, `deploy.sh`
 
 ### Webserver setup
 
@@ -198,17 +211,28 @@ curl -u alice:yourpassword "https://dns.example.com/nic/update?hostname=test.exa
 
 Expected responses:
 - `200` with no body (plain) or `good 1.2.3.4` (nic/update) on success
+- `400` on malformed input
 - `401` on auth failure
 - `403` on domain permission failure
+- `429` when throttled or locked out
+
+`data/app.log` records each request. It rotates to `app.log.1` at 5 MB.
 
 ## Development
 
 ```sh
 composer install
-composer lint    # PHPStan static analysis
-composer test    # PHPUnit tests
+composer lint      # Code style check + PHPStan (level max)
+composer fmt       # Apply code style fixes
+composer test      # PHPUnit tests
+composer audit     # Dependency security advisories
 php -S localhost:8080 -t public/
 ```
+
+The public suffix list in `data/` is fetched by composer's install hook. It is
+skipped when the local copy is under 30 days old, and a failed download does
+not fail the install when a copy already exists. Force a refresh with
+`composer update-psl-force`.
 
 ## License
 
