@@ -19,6 +19,8 @@ class ClientIp
         array $trustedProxies,
         string $headerValue,
     ): string {
+        $remoteAddr = IpUtil::canonicalize($remoteAddr);
+
         if ($remoteAddr === '' || $headerName === null || $trustedProxies === []) {
             return $remoteAddr;
         }
@@ -42,7 +44,7 @@ class ClientIp
                 return $remoteAddr;
             }
             if (!in_array($candidate, $trustedProxies, true)) {
-                return $candidate;
+                return IpUtil::canonicalize($candidate);
             }
         }
 
