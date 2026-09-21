@@ -119,7 +119,30 @@ class RateLimiterTest extends TestCase
         $rl->recordFailure('5.6.7.8');
 
         $data = json_decode((string) file_get_contents($this->path), true);
+        $this->assertIsArray($data);
         $this->assertArrayNotHasKey('1.2.3.4', $data);
         $this->assertArrayHasKey('5.6.7.8', $data);
+    }
+
+    public function testCorruptStateFileIsTolerated(): void
+    {
+        file_put_contents($this->path, '{ truncated');
+
+        $rl = new RateLimiter($this->path, maxAttempts: 2);
+
+        $this->assertFalse($rl->isBlocked('1.2.3.4'));
+        $this->assertFalse($rl->recordFailure('1.2.3.4'));
+        $this->assertTrue($rl->recordFailure('1.2.3.4'));
+    }
+
+    public function testMalformedEntryIsDiscarded(): void
+    {
+        file_put_contents($this->path, (string) json_encode([
+            '1.2.3.4' => ['count' => 'lots'],
+        ]));
+
+        $rl = new RateLimiter($this->path, maxAttempts: 2);
+
+        $this->assertFalse($rl->isBlocked('1.2.3.4'));
     }
 }

@@ -152,4 +152,31 @@ class PlainHandlerTest extends HandlerTestCase
         $this->assertSame(429, $code);
         $this->assertSame('', $body);
     }
+
+    public function testArrayHostnameIsRejectedNotFatal(): void
+    {
+        // ?hostname[]=x decodes to an array; passing it to a string-typed
+        // validator used to raise a TypeError, i.e. a bare 500.
+        $_GET['hostname'] = ['sub.example.com'];
+        $_GET['ip'] = '1.2.3.4';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(400, $code);
+        $this->assertSame('hostname or ip address is missing', $body);
+        $this->assertCount(0, $this->dns->updateCalls);
+    }
+
+    public function testArrayIpIsRejectedNotFatal(): void
+    {
+        $_GET['hostname'] = 'sub.example.com';
+        $_GET['ip'] = ['1.2.3.4'];
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(400, $code);
+        $this->assertCount(0, $this->dns->updateCalls);
+    }
 }

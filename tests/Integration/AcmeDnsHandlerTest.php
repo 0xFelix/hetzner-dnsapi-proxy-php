@@ -35,6 +35,7 @@ class AcmeDnsHandlerTest extends HandlerTestCase
         $this->assertSame('TXT', $call->type);
 
         $decoded = json_decode($output, true);
+        $this->assertIsArray($decoded);
         $this->assertSame('challenge-value', $decoded['txt']);
     }
 

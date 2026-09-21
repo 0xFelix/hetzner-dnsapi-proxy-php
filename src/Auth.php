@@ -20,8 +20,8 @@ class Auth
      */
     public function extractBasicAuth(): ?array
     {
-        $username = $_SERVER['PHP_AUTH_USER'] ?? '';
-        $password = $_SERVER['PHP_AUTH_PW'] ?? '';
+        $username = Sanitize::asString($_SERVER['PHP_AUTH_USER'] ?? null);
+        $password = Sanitize::asString($_SERVER['PHP_AUTH_PW'] ?? null);
 
         if ($username === '' || $password === '') {
             return null;
@@ -43,8 +43,8 @@ class Auth
      */
     public function extractApiKeyAuth(): ?array
     {
-        $username = $_SERVER['HTTP_X_API_USER'] ?? '';
-        $password = $_SERVER['HTTP_X_API_KEY'] ?? '';
+        $username = Sanitize::asString($_SERVER['HTTP_X_API_USER'] ?? null);
+        $password = Sanitize::asString($_SERVER['HTTP_X_API_KEY'] ?? null);
 
         if ($username === '' || $password === '') {
             return null;

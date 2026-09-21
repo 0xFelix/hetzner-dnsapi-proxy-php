@@ -114,7 +114,11 @@ class AcmeDnsHandler
         header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
     }
 
-    /** acme-dns sends credentials in X-Api-User / X-Api-Key, not Basic Auth. */
+    /**
+     * acme-dns sends credentials in X-Api-User / X-Api-Key, not Basic Auth.
+     *
+     * @return array{string, string}|null
+     */
     protected function extractCredentials(): ?array
     {
         return $this->auth->extractApiKeyAuth();
