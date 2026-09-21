@@ -72,14 +72,17 @@ class RateLimiterTest extends TestCase
         $this->assertFalse($rl->isBlocked('1.2.3.4'));
     }
 
-    public function testFileDeletedWhenEmpty(): void
+    public function testFileTruncatedWhenEmpty(): void
     {
         $rl = new RateLimiter($this->path);
         $rl->recordFailure('1.2.3.4');
         $this->assertFileExists($this->path);
 
+        // The file is kept and emptied, never unlinked: removing it would let a
+        // concurrent process lock a fresh inode at the same path.
         $rl->reset('1.2.3.4');
-        $this->assertFileDoesNotExist($this->path);
+        $this->assertFileExists($this->path);
+        $this->assertSame('', (string) file_get_contents($this->path));
     }
 
     public function testCustomMaxAttempts(): void

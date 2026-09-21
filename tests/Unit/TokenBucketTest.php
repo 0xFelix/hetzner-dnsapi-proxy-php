@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HetznerDnsapiProxy\Tests\Unit;
 
+use HetznerDnsapiProxy\JsonStore;
 use HetznerDnsapiProxy\TokenBucket;
 use PHPUnit\Framework\TestCase;
 
@@ -82,7 +83,7 @@ class TokenBucketTest extends TestCase
         $this->assertArrayHasKey('5.6.7.8', $data);
     }
 
-    public function testFileDeletedWhenEmpty(): void
+    public function testFileTruncatedWhenEmpty(): void
     {
         $tb = new TokenBucket($this->path, rps: 1.0, burst: 5, idleSeconds: 1);
         $tb->allow('1.2.3.4');
@@ -90,12 +91,39 @@ class TokenBucketTest extends TestCase
 
         sleep(2);
 
-        // Allowing a key that will also become idle immediately won't work,
-        // but we can verify cleanup by checking after idle expiry on next call
         $tb2 = new TokenBucket($this->path, rps: 1.0, burst: 5, idleSeconds: 0);
         $tb2->allow('5.6.7.8');
 
-        // After cleanup of both idle entries the file should be removed
-        $this->assertFileDoesNotExist($this->path);
+        // Both entries are idle and cleaned up, so the map is empty. The file is
+        // kept and emptied, never unlinked - see JsonStore.
+        $this->assertFileExists($this->path);
+        $this->assertSame('', (string) file_get_contents($this->path));
+    }
+
+    public function testEvictsOldestEntriesOverCap(): void
+    {
+        $tb = new TokenBucket($this->path, rps: 1.0, burst: 5, idleSeconds: 3600);
+
+        // Seed just over the cap, all recent enough to survive idle cleanup so
+        // that the cap - not the idle policy - is what does the evicting.
+        $now = microtime(true);
+        $over = JsonStore::MAX_ENTRIES + 10;
+        $entries = [];
+        for ($i = 0; $i < $over; $i++) {
+            $entries['10.0.' . intdiv($i, 256) . '.' . ($i % 256)] = [
+                'tokens' => 5.0,
+                'last' => $now - ($over - $i) * 0.001,
+            ];
+        }
+        file_put_contents($this->path, (string) json_encode($entries));
+
+        $tb->allow('192.0.2.1');
+
+        $data = json_decode((string) file_get_contents($this->path), true);
+        $this->assertIsArray($data);
+        $this->assertCount(JsonStore::MAX_ENTRIES, $data);
+        // Lowest 'last' values are dropped first; 192.0.2.1 has the newest.
+        $this->assertArrayNotHasKey('10.0.0.0', $data);
+        $this->assertArrayHasKey('192.0.2.1', $data);
     }
 }
