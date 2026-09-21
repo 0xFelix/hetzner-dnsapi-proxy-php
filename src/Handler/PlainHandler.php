@@ -7,6 +7,7 @@ namespace HetznerDnsapiProxy\Handler;
 use HetznerDnsapiProxy\Auth;
 use HetznerDnsapiProxy\DnsServiceInterface;
 use HetznerDnsapiProxy\FqdnUtil;
+use HetznerDnsapiProxy\IpUtil;
 use HetznerDnsapiProxy\Logger;
 use HetznerDnsapiProxy\RateLimiter;
 use HetznerDnsapiProxy\RequestData;
@@ -57,6 +58,7 @@ class PlainHandler
         }
 
         $type = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false ? 'A' : 'AAAA';
+        $ip = IpUtil::canonicalize($ip);
 
         try {
             [$name, $zone] = FqdnUtil::splitFqdn($hostname);

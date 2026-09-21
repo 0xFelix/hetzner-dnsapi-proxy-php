@@ -91,4 +91,12 @@ class LoggerTest extends TestCase
         $this->assertFileExists($this->path . '.1');
         $this->assertCount(1, $this->lines());
     }
+
+    public function testCollapsedIpv6IsLoggedAsGiven(): void
+    {
+        // ClientIp canonicalizes before the IP reaches the logger.
+        (new Logger($this->path, '2001:db8:3c4d::1ff'))->info('hello');
+
+        $this->assertStringContainsString('[2001:db8:3c4d::1ff] hello', $this->lines()[0]);
+    }
 }

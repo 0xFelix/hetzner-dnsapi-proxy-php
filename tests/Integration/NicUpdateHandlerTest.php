@@ -195,4 +195,31 @@ class NicUpdateHandlerTest extends HandlerTestCase
         $this->assertSame('notfqdn', $body);
         $this->assertCount(0, $this->dns->updateCalls);
     }
+
+    public function testIpv6IsCanonicalizedInRecordAndResponse(): void
+    {
+        $_GET['hostname'] = 'sub.example.com';
+        $_GET['myip'] = '2001:0db8:3c4d:0000:0000:0000:0000:01ff';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(200, $code);
+        $this->assertSame('good 2001:db8:3c4d::1ff', $body);
+        $this->assertSame('AAAA', $this->dns->updateCalls[0]->type);
+        $this->assertSame('2001:db8:3c4d::1ff', $this->dns->updateCalls[0]->value);
+    }
+
+    public function testIpv6RemoteAddrFallbackIsCanonicalized(): void
+    {
+        $_SERVER['REMOTE_ADDR'] = '2001:0db8:3c4d:0000:0000:0000:0000:01ff';
+        $_GET['hostname'] = 'sub.example.com';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code, $body] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(200, $code);
+        $this->assertSame('good 2001:db8:3c4d::1ff', $body);
+        $this->assertSame('2001:db8:3c4d::1ff', $this->dns->updateCalls[0]->value);
+    }
 }

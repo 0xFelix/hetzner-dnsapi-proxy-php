@@ -179,4 +179,17 @@ class PlainHandlerTest extends HandlerTestCase
         $this->assertSame(400, $code);
         $this->assertCount(0, $this->dns->updateCalls);
     }
+
+    public function testIpv6IsCanonicalizedInRecord(): void
+    {
+        $_GET['hostname'] = 'sub.example.com';
+        $_GET['ip'] = '2001:0db8:3c4d:0000:0000:0000:0000:01ff';
+        $this->setBasicAuth('alice', 'secret');
+
+        [$code] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(200, $code);
+        $this->assertSame('AAAA', $this->dns->updateCalls[0]->type);
+        $this->assertSame('2001:db8:3c4d::1ff', $this->dns->updateCalls[0]->value);
+    }
 }
