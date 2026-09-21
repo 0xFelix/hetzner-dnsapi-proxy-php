@@ -34,7 +34,7 @@ class Sanitize
             return 'txt value exceeds ' . self::MAX_TXT_LENGTH . ' characters';
         }
 
-        if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
+        if (self::hasControl($value)) {
             return 'txt value contains control characters';
         }
 
