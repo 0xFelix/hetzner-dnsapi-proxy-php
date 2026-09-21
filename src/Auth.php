@@ -62,7 +62,7 @@ class Auth
      *
      * @return array{username: string, domains: string[]}|null
      */
-    public function authenticate(string $username, string $password): ?array
+    public function authenticate(string $username, #[\SensitiveParameter] string $password): ?array
     {
         if ($username === '' || $password === '') {
             return null;
@@ -120,7 +120,7 @@ class Auth
      *
      * @return array{username: string, domains: string[]}|null
      */
-    private function findUser(string $username, string $password): ?array
+    private function findUser(string $username, #[\SensitiveParameter] string $password): ?array
     {
         $match = null;
         foreach ($this->config->users as $user) {
