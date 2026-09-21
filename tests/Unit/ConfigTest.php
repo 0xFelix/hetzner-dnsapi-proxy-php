@@ -164,4 +164,123 @@ class ConfigTest extends TestCase
         $this->expectExceptionMessage('duplicate username');
         Config::load($path);
     }
+
+    public function testZeroStringCredentialsAreAccepted(): void
+    {
+        // empty("0") is true, so a naive check would reject these as missing.
+        $path = $this->writeConfig([
+            'token' => '0',
+            'users' => [
+                ['username' => '0', 'password' => '0', 'domains' => ['example.com']],
+            ],
+        ]);
+
+        $config = Config::load($path);
+
+        $this->assertSame('0', $config->token);
+        $this->assertSame('0', $config->users[0]['username']);
+        $this->assertSame('0', $config->users[0]['password']);
+    }
+
+    public function testPlaceholderTokenIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'YOUR_HETZNER_CLOUD_API_TOKEN',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => ['example.com']],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('placeholder');
+        Config::load($path);
+    }
+
+    public function testNonArrayEndpointsIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'endpoints' => 'plain',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => ['example.com']],
+            ],
+        ]);
+
+        // Used to surface as a raw TypeError from array_diff(), i.e. a bare 500.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('endpoints must be a list of strings');
+        Config::load($path);
+    }
+
+    public function testNonStringDomainIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => [123]],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('non-string domain');
+        Config::load($path);
+    }
+
+    public function testEmptyDomainsIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => []],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('non-empty domains list');
+        Config::load($path);
+    }
+
+    public function testNonNumericRateLimitIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'rate_limit_rps' => 'fast',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => ['example.com']],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('rate_limit_rps must be a number');
+        Config::load($path);
+    }
+
+    public function testNegativeLockoutIsRejected(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'lockout_max_attempts' => 0,
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => ['example.com']],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('lockout_max_attempts must be > 0');
+        Config::load($path);
+    }
+
+    public function testConfiguredDomainsAreNormalized(): void
+    {
+        $path = $this->writeConfig([
+            'token' => 'test-token',
+            'users' => [
+                ['username' => 'alice', 'password' => 'secret', 'domains' => ['Example.COM', '*.Example.COM']],
+            ],
+        ]);
+
+        $config = Config::load($path);
+
+        $this->assertSame(['example.com', '*.example.com'], $config->users[0]['domains']);
+    }
 }
