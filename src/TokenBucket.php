@@ -6,20 +6,24 @@ namespace HetznerDnsapiProxy;
 
 class TokenBucket
 {
+    private readonly JsonStore $store;
+
     public function __construct(
-        private readonly string $path,
+        string $path,
         private readonly float $rps = 5.0,
         private readonly int $burst = 10,
         private readonly int $idleSeconds = 600,
-    ) {}
+    ) {
+        $this->store = new JsonStore($path, 'TokenBucket');
+    }
 
     public function allow(string $key): bool
     {
-        // Fail closed (deny) if the state file can't be opened — rate limiting
+        // Fail closed (deny) if the state file can't be opened - rate limiting
         // is a security control and a broken store shouldn't silently disable it.
         return $this->withLock(false, function (array &$data) use ($key): bool {
             $now = microtime(true);
-            $entry = $data[$key] ?? null;
+            $entry = self::entry($data[$key] ?? null);
 
             if ($entry === null) {
                 $tokens = $this->burst - 1.0;
@@ -40,11 +44,32 @@ class TokenBucket
         });
     }
 
-    /** @param array<string, array{tokens: float, last: float}> $data */
+    /**
+     * Narrow a stored entry, or null if it is missing or malformed.
+     *
+     * The state file can be corrupt or hand-edited, so nothing read back from
+     * it is assumed to have the right shape.
+     *
+     * @return array{tokens: float, last: float}|null
+     */
+    private static function entry(mixed $raw): ?array
+    {
+        if (!is_array($raw) || !isset($raw['tokens'], $raw['last'])) {
+            return null;
+        }
+        if (!is_numeric($raw['tokens']) || !is_numeric($raw['last'])) {
+            return null;
+        }
+
+        return ['tokens' => (float) $raw['tokens'], 'last' => (float) $raw['last']];
+    }
+
+    /** @param array<string, mixed> $data */
     private function cleanup(array &$data, float $now): void
     {
-        foreach ($data as $key => $entry) {
-            if (($now - $entry['last']) >= $this->idleSeconds) {
+        foreach ($data as $key => $raw) {
+            $entry = self::entry($raw);
+            if ($entry === null || ($now - $entry['last']) >= $this->idleSeconds) {
                 unset($data[$key]);
             }
         }
@@ -53,34 +78,10 @@ class TokenBucket
     /** @param callable(array<string, mixed>&): bool $fn */
     private function withLock(bool $failResult, callable $fn): bool
     {
-        $fh = @fopen($this->path, 'c+');
-        if ($fh === false) {
-            error_log('TokenBucket: failed to open ' . $this->path);
-            return $failResult;
-        }
-
-        $data = [];
-        try {
-            flock($fh, LOCK_EX);
-            $json = stream_get_contents($fh);
-            $data = json_decode($json ?: '{}', true) ?: [];
-
-            $result = $fn($data);
-
-            fseek($fh, 0);
-            ftruncate($fh, 0);
-            if (!empty($data)) {
-                fwrite($fh, (string) json_encode($data));
-            } else {
-                // Unlink while the lock is held so a racing writer can't
-                // have its data silently deleted after we release.
-                @unlink($this->path);
-            }
-
-            return $result;
-        } finally {
-            flock($fh, LOCK_UN);
-            fclose($fh);
-        }
+        return $this->store->mutate(
+            $failResult,
+            $fn,
+            static fn (mixed $entry): float => self::entry($entry)['last'] ?? 0.0,
+        );
     }
 }
