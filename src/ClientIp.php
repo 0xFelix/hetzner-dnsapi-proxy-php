@@ -56,11 +56,11 @@ class ClientIp
      */
     public static function fromServer(?string $headerName, array $trustedProxies): string
     {
-        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+        $remoteAddr = Sanitize::asString($_SERVER['REMOTE_ADDR'] ?? null);
         $headerValue = '';
         if ($headerName !== null) {
             $key = 'HTTP_' . strtoupper(str_replace('-', '_', $headerName));
-            $headerValue = (string) ($_SERVER[$key] ?? '');
+            $headerValue = Sanitize::asString($_SERVER[$key] ?? null);
         }
         return self::resolve($remoteAddr, $headerName, $trustedProxies, $headerValue);
     }

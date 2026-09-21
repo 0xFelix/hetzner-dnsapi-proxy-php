@@ -47,7 +47,7 @@ class HttpReqHandler
             return;
         }
 
-        $contentType = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '';
+        $contentType = Sanitize::asString($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? null);
         if (stripos($contentType, 'application/json') === false) {
             http_response_code(400);
             echo 'Content-Type must be application/json';

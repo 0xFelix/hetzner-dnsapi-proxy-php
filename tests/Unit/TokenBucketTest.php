@@ -79,6 +79,7 @@ class TokenBucketTest extends TestCase
         $tb->allow('5.6.7.8');
 
         $data = json_decode((string) file_get_contents($this->path), true);
+        $this->assertIsArray($data);
         $this->assertArrayNotHasKey('1.2.3.4', $data);
         $this->assertArrayHasKey('5.6.7.8', $data);
     }
@@ -125,5 +126,28 @@ class TokenBucketTest extends TestCase
         // Lowest 'last' values are dropped first; 192.0.2.1 has the newest.
         $this->assertArrayNotHasKey('10.0.0.0', $data);
         $this->assertArrayHasKey('192.0.2.1', $data);
+    }
+
+    public function testCorruptStateFileIsTolerated(): void
+    {
+        file_put_contents($this->path, 'not json at all');
+
+        $tb = new TokenBucket($this->path, rps: 1.0, burst: 2);
+
+        $this->assertTrue($tb->allow('1.2.3.4'));
+    }
+
+    public function testMalformedEntryIsDiscarded(): void
+    {
+        file_put_contents($this->path, (string) json_encode([
+            '1.2.3.4' => ['tokens' => 'plenty', 'last' => null],
+        ]));
+
+        $tb = new TokenBucket($this->path, rps: 1.0, burst: 2);
+
+        // The bogus entry is dropped and the client starts from a fresh bucket.
+        $this->assertTrue($tb->allow('1.2.3.4'));
+        $this->assertTrue($tb->allow('1.2.3.4'));
+        $this->assertFalse($tb->allow('1.2.3.4'));
     }
 }
