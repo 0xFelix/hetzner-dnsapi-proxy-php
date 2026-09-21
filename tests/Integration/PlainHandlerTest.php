@@ -128,4 +128,28 @@ class PlainHandlerTest extends HandlerTestCase
         $this->assertSame(403, $code);
         $this->assertEmpty($this->dns->updateCalls);
     }
+
+    public function testLockedOutClientGets429(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $this->rateLimiter->recordFailure('127.0.0.1');
+        }
+
+        $this->setBasicAuth('alice', 'secret');
+        $_GET['hostname'] = 'sub.example.com';
+        $_GET['ip'] = '1.2.3.4';
+
+        [$code] = $this->captureOutput([$this->handler, 'handle']);
+
+        $this->assertSame(429, $code);
+        $this->assertCount(0, $this->dns->updateCalls);
+    }
+
+    public function testRejectRateLimitedIsTheSameResponse(): void
+    {
+        [$code, $body] = $this->captureOutput([$this->handler, 'rejectRateLimited']);
+
+        $this->assertSame(429, $code);
+        $this->assertSame('', $body);
+    }
 }

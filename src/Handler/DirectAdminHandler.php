@@ -14,6 +14,8 @@ use HetznerDnsapiProxy\Sanitize;
 
 class DirectAdminHandler
 {
+    private const RETRY_AFTER_SECONDS = 60;
+
     public function __construct(
         private readonly Auth $auth,
         private readonly DnsServiceInterface $dns,
@@ -28,7 +30,7 @@ class DirectAdminHandler
 
         if ($this->rateLimiter->isBlocked($clientIp)) {
             $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
-            http_response_code(429);
+            $this->rejectRateLimited();
             return;
         }
 
@@ -70,7 +72,7 @@ class DirectAdminHandler
 
         if ($this->rateLimiter->isBlocked($clientIp)) {
             $this->log->info('directadmin: blocked request from locked out IP ' . $clientIp);
-            http_response_code(429);
+            $this->rejectRateLimited();
             return;
         }
 
@@ -183,5 +185,12 @@ class DirectAdminHandler
         }
 
         return null;
+    }
+
+    /** Response for a throttled or locked-out client. Also used by the front controller. */
+    public function rejectRateLimited(): void
+    {
+        http_response_code(429);
+        header('Retry-After: ' . self::RETRY_AFTER_SECONDS);
     }
 }
