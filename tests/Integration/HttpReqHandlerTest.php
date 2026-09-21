@@ -23,7 +23,7 @@ class HttpReqHandlerTest extends HandlerTestCase
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handlePresent($body));
+        [$code] = $this->captureOutput(fn () => $this->handler->handlePresent($body));
 
         $this->assertSame(200, $code);
         $this->assertCount(1, $this->dns->updateCalls);
@@ -41,7 +41,7 @@ class HttpReqHandlerTest extends HandlerTestCase
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handleCleanup($body));
+        [$code] = $this->captureOutput(fn () => $this->handler->handleCleanup($body));
 
         $this->assertSame(200, $code);
         $this->assertEmpty($this->dns->updateCalls);
@@ -54,7 +54,7 @@ class HttpReqHandlerTest extends HandlerTestCase
         $this->setContentType('text/plain');
         $this->setBasicAuth('alice', 'secret');
 
-        [$code, $output] = $this->captureOutput(fn() => $this->handler->handlePresent($body));
+        [$code, $output] = $this->captureOutput(fn () => $this->handler->handlePresent($body));
 
         $this->assertSame(400, $code);
         $this->assertStringContainsString('Content-Type', $output);
@@ -66,7 +66,7 @@ class HttpReqHandlerTest extends HandlerTestCase
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'secret');
 
-        [$code, $output] = $this->captureOutput(fn() => $this->handler->handlePresent($body));
+        [$code, $output] = $this->captureOutput(fn () => $this->handler->handlePresent($body));
 
         $this->assertSame(400, $code);
         $this->assertStringContainsString('missing', $output);
@@ -78,7 +78,7 @@ class HttpReqHandlerTest extends HandlerTestCase
         $this->setContentType('application/json');
         $this->setBasicAuth('alice', 'wrong');
 
-        [$code] = $this->captureOutput(fn() => $this->handler->handlePresent($body));
+        [$code] = $this->captureOutput(fn () => $this->handler->handlePresent($body));
 
         $this->assertSame(401, $code);
     }
