@@ -3,6 +3,9 @@
 /data/public_suffix_list.dat
 /data/app.log
 /data/rate_limit.json
+/data/token_bucket.json
+/data/app.log.1
 .claude/
 .phpunit.result.cache
 .phpunit.cache/
+.php-cs-fixer.cache
