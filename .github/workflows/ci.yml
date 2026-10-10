@@ -41,7 +41,7 @@ jobs:
           path: data/public_suffix_list.dat
           key: psl-${{ github.run_id }}
           restore-keys: psl-
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
       - run: composer lint
 
   test:
@@ -62,7 +62,7 @@ jobs:
           path: data/public_suffix_list.dat
           key: psl-${{ github.run_id }}
           restore-keys: psl-
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
       - run: composer test
 
   audit:
